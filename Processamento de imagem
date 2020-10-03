@@ -1,0 +1,70 @@
+from IPython.display import display, Math, Latex
+
+import numpy as np
+import matplotlib.pyplot as plt
+import requests
+from io import BytesIO
+from PIL import Image
+
+response = requests.get("https://imageryandmusic.com/wpWP2019/wp-content/uploads/2012/10/foggy-road-682x1024-1024x585.jpg")
+img = Image.open(BytesIO(response.content))
+
+# converter nossa imagem em um novo vetor
+img = np.asarray(img)
+
+# transformar a imagem em 1D para poder transformar
+flat = img.flatten()
+
+# criar a funcao do historiograma
+def get_histogram(image, bins):
+    # mudar o valor das colunas para que elas fiquem espaçadas 
+    histogram = np.zeros(bins)
+
+    # loop para contar os pixeis
+    for pixel in image:
+        histogram[pixel] += 1
+
+    # return o resultado
+    return histogram
+
+# executar nossa funcao
+hist = get_histogram(flat, 256)
+
+# criar a soma da funcao
+def cumsum(a):
+    a = iter(a)
+    b = [next(a)]
+    for i in a:
+        b.append(b[-1] + i)
+    return np.array(b)
+
+# executar fn
+cs = cumsum(hist)
+
+# numerador & denominador
+nj = (cs - cs.min()) * 255
+N = cs.max() - cs.min()
+
+# Re-normalizar a soma do conjunto
+cs = nj / N
+
+# usar o uint8 como nao podemos usar float nas imagnes
+cs = cs.astype('uint8')
+
+# pegar o valor da soma comulativa para cada valor do index, e mudar para img_new
+img_new = cs[flat]
+
+# mudar o arraw na sua forma original
+img_new = np.reshape(img_new, img.shape)
+
+# colocar no display elas lado a lado
+fig = plt.figure()
+fig.set_figheight(15)
+fig.set_figwidth(15)
+fig.add_subplot(1,2,1)
+plt.imshow(img)
+
+# Mostrar a nova
+fig.add_subplot(1,2,2)
+plt.imshow(img_new)
+plt.show(block=True)
